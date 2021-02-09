@@ -18,8 +18,18 @@ stuff.reload = (p = 'commands/') => {
         }
     }
 }
+stuff.loadItems = () => {
+    var files = fs.readdirSync('items/')
+    stuff.items = {}
+    for (const f of files) {
+        delete require.cache[resolve(`./items/${f}`)]
+        var c = require(`./items/${f}`)
+        stuff.items[c.id] = c;
+    }
+}
 client.on('ready', () => {
     stuff.reload()
+    stuff.loadItems()
     console.log('ha ha yes')
 })
 client.on('message', async msg => {

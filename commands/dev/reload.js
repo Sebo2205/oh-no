@@ -4,6 +4,7 @@ module.exports = {
     category: "Dev",
     run(message) {
         require('../../stuff.js').reload()
+        require('../../stuff.js').loadItems()
         message.channel.send(`Commands reloaded succesfully`)
     }
 }
