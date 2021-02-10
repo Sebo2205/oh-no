@@ -8,4 +8,7 @@ module.exports = {
     getMoney(user) {
         return this.db.getData(`/${user}/money`) || 0;
     },
+    getItems(user) {
+        return this.db.getData(`/${user}/items`)
+    },
 }
