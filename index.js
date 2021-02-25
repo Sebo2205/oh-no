@@ -23,6 +23,17 @@ stuff.objects = {
     'none': { name: "Nothing", collision: false, icon: '', id: 'none', color: 0 },
     'moneybag': { name: "Money Bag", money: 150, collision: true, pushable: true, icon: '💰', color: 0xe5ff00ff, id: "moneybag", onInteract(message, p, x, y, o) { var m = o.money;p.money += m;message.channel.send({content: `You got ${m}$`, code: true});stuff.map.setObject(x, y, 'none')} },
     'rock': { name: "Rock", collision: true, pushable: true, icon: '🪨', id: "rock", color: 0xadadadff },
+    'milk': { name: "Milk", collision: true, healingLeft: 25, pushable: true, icon: '🥛', id: "milk", color: 0xffffffff, onInteract(message, p, x, y) {
+        var t = stuff.map.getTile(x, y)
+        var o = { ...t.object} ;
+        if (p.health >= p.maxHealth) return;
+        var amount = Math.clamp(p.maxHealth - p.health, 0, o.healingLeft)
+        p.health += amount
+        o.healingLeft -= amount
+        t.object = o;
+        if (o.healingLeft <= 0) stuff.map.setObject(x, y, 'none')
+        message.channel.send({ content: `Got ${amount} health back`, code: true })
+    } },
     'bomb': { name: "Bomb", collision: true, pushable: true, icon: '💣', id: 'bomb', color: 0x111111ff, onInteract(message, _p, x, y) {
         stuff.map.setObject(x, y, 'none')
         var players = []
@@ -122,7 +133,7 @@ stuff.map = {
         if (!tile) return true
         return tile.collision || tile.object.collision
     },
-    generateObjects(options) {
+    generateObjects(options = [{ id: "moneybag", spawnRate: 0.03 }, { id: "rock", spawnRate: 0.06 }]) {
         // Some crappy map generation
         if (!options) return;
         console.log(`Generating objects`)
@@ -157,7 +168,7 @@ stuff.map = {
             }
         }
         console.log(`Finished generating tiles`)
-        stuff.map.generateObjects(options.spawnObjects)
+        //stuff.map.generateObjects(options.spawnObjects)
     }
 }
 stuff.takeDamage = (p, damage) => {
@@ -168,6 +179,8 @@ stuff.takeDamage = (p, damage) => {
 stuff.killPlayer = (p) => {
     var o = Object.create(stuff.objects.moneybag)
     o.money = p.money;
+    o.name = `${p.obj.name}'s Wallet`;
+    o.icon = '💵'
     if (p.tile?.object?.id == 'player') p.tile.object = o;
 
    delete stuff.players[p.user.id]
@@ -226,6 +239,7 @@ stuff.movePlayer = (id, x, y) => {
     }
 }
 stuff.map.generate()
+stuff.map.generateObjects()
 stuff.client = client;
 stuff.reload = (p = 'commands/') => {
     var files = fs.readdirSync(p)
