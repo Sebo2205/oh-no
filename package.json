@@ -1,6 +1,6 @@
 {
   "name": "oh-no",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "eggs",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,9 @@
     "axios": "^0.21.1",
     "discord.js": "^12.5.1",
     "jimp": "^0.16.1",
-    "node-json-db": "^1.1.0"
+    "nbt": "^0.8.1",
+    "node-json-db": "^1.1.0",
+    "vm2": "^3.9.2",
+    "ws": "^7.4.3"
   }
 }

@@ -1,29 +1,37 @@
 const Discord = require('discord.js')
 const client = new Discord.Client()
+var readline = require('readline')
+var rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+})
 const config = require('./config.json')
 client.commands = new Discord.Collection()
+client.consoleCommands = new Discord.Collection()
+client.consoleConfig = { logMessages: false }
 const stuff = require('./stuff')
 const fs = require('fs')
 const { resolve } = require('path')
 const { hastebin } = require('./stuff')
 hastebin('egg')
-stuff.scrollWidth = 14;
-stuff.scrollHeight = 14;
+stuff.scrollWidth = 12;
+stuff.scrollHeight = 16;
 Math.clamp = (x, min, max) => {
     if (x > max) return max;
     else if (x < min) return min;
     else return x;
 }
 stuff.tiles = {
-    'grass': { name: "Grass", icon: '🟩', collision: false, color: 0x34eb37ff },
-    'dirt': { name: "Dirt", icon: '🟫', collision: false, color: 0xeb6b34ff },
+    0x47: { name: "Grass", icon: '🟩', validSpawn: true, collision: false, color: 0x34eb37ff },
+    0x44: { name: "Dirt", icon: '🟫', validSpawn: true, collision: false, color: 0xeb6b34ff },
+    0x4C: { name: "Lava", icon: '🟧', validSpawn: false, collision: false, color: 0xff8000ff, onPlayer(p) { stuff.takeDamage(p, 5) } }
 }
 stuff.objects = {
-    'player': { name: "EggEater69", collision: true, pushable: true, icon: '⚪', id: 'player', color: 0 },
-    'none': { name: "Nothing", collision: false, icon: '', id: 'none', color: 0 },
-    'moneybag': { name: "Money Bag", money: 150, collision: true, pushable: true, icon: '💰', color: 0xe5ff00ff, id: "moneybag", onInteract(message, p, x, y, o) { var m = o.money;p.money += m;message.channel.send({content: `You got ${m}$`, code: true});stuff.map.setObject(x, y, 'none')} },
-    'rock': { name: "Rock", collision: true, pushable: true, icon: '🪨', id: "rock", color: 0xadadadff },
-    'milk': { name: "Milk", collision: true, healingLeft: 25, pushable: true, icon: '🥛', id: "milk", color: 0xffffffff, onInteract(message, p, x, y) {
+    0: { name: "Nothing", collision: false, icon: '', id: 0, color: 0 },
+    1: { name: "EggEater69", collision: true, pushable: true, icon: '⚪', id: 1, color: 0 },
+    2: { name: "Money Bag", money: 150, collision: true, pushable: true, icon: '💰', color: 0xe5ff00ff, id: 2, onInteract(message, p, x, y, o) { var m = o.money;p.money += m;message.channel.send({content: `You got ${m}$`, code: true});stuff.map.setObject(x, y, 0)} },
+    3: { name: "Rock", collision: true, pushable: true, icon: '🪨', id: 3, color: 0xadadadff },
+    4: { name: "Milk", collision: true, healingLeft: 25, pushable: true, icon: '🥛', id: 4, color: 0xffffffff, onInteract(message, p, x, y) {
         var t = stuff.map.getTile(x, y)
         var o = { ...t.object} ;
         if (p.health >= p.maxHealth) return;
@@ -31,26 +39,26 @@ stuff.objects = {
         p.health += amount
         o.healingLeft -= amount
         t.object = o;
-        if (o.healingLeft <= 0) stuff.map.setObject(x, y, 'none')
+        if (o.healingLeft <= 0) stuff.map.setObject(x, y, 0)
         message.channel.send({ content: `Got ${amount} health back`, code: true })
     } },
-    'bomb': { name: "Bomb", collision: true, pushable: true, icon: '💣', id: 'bomb', color: 0x111111ff, onInteract(message, _p, x, y) {
-        stuff.map.setObject(x, y, 'none')
+    5: { name: "Bomb", collision: true, pushable: true, icon: '💣', id: 5, color: 0x111111ff, onInteract(message, _p, x, y) {
+        stuff.map.setObject(x, y, 0)
         var players = []
         var left = stuff.map.getTile(x, y - 1)
         var right = stuff.map.getTile(x, y + 1)
         var up = stuff.map.getTile(x - 1, y)
         var down = stuff.map.getTile(x + 1, y)
         var bombs = []
-        if (left && left.object.id == 'bomb') bombs.push([x, y - 1])
-        if (right && right.object.id == 'bomb') bombs.push([x, y + 1])
-        if (up && up.object.id == 'bomb') bombs.push([x - 1, y])
-        if (down && down.object.id == 'bomb') bombs.push([x + 1, y])
+        if (left && left.object.id == 5) bombs.push([x, y - 1])
+        if (right && right.object.id == 5) bombs.push([x, y + 1])
+        if (up && up.object.id == 5) bombs.push([x - 1, y])
+        if (down && down.object.id == 5) bombs.push([x + 1, y])
         
-        if (left && left.object.id == 'player') players.push(stuff.players[left.object.player])
-        if (right && right.object.id == 'player') players.push(stuff.players[right.object.player])
-        if (up && up.object.id == 'player') players.push(stuff.players[up.object.player])
-        if (down && down.object.id == 'player') players.push(stuff.players[down.object.player])
+        if (left && left.object.id == 1) players.push(stuff.players[left.object.player])
+        if (right && right.object.id == 1) players.push(stuff.players[right.object.player])
+        if (up && up.object.id == 1) players.push(stuff.players[up.object.player])
+        if (down && down.object.id == 1) players.push(stuff.players[down.object.player])
         for (var pl of players) {
             stuff.takeDamage(pl, pl.maxHealth - 1)
         }
@@ -91,10 +99,8 @@ ${p.obj.icon} ${p.obj.name} (Ded)
 } else {
 mapText += 
 `\`\`\`
-${p.obj.icon} ${p.obj.name}
-Health: ${Math.floor(p.health).toString().padStart(3, '0')}/${Math.floor(p.maxHealth).toString().padStart(3, '0')}\tAttack: ${Math.floor(p.attack).toString().padStart(3, '0')}\tMoney: ${money3} ${money2} ${money1}$
-X=${Math.floor(p.x).toString().padStart(3, '0')}\tY=${Math.floor(p.y).toString().padStart(3, '0')}\tScroll Position: X=${Math.floor(p.scrollX).toString().padStart(3, '0')}\tY=${Math.floor(p.scrollY).toString().padStart(3, '0')}
-Current Tile: ${center?.name || 'unknown'} (${center?.object?.name || 'unknown'})
+${p.obj.icon} ${p.obj.name}  X${Math.floor(p.x).toString().padStart(3, '0')} Y${Math.floor(p.y).toString().padStart(3, '0')}  ${'▰'.repeat(Math.clamp((p.health / p.maxHealth) * 20, 0, 20)).padEnd(20, '▱')} ${p.health}/${p.maxHealth}
+Attack: ${Math.floor(p.attack).toString()}  Money: ${money3},${money2},${money1}$
 Left Tile: ${left?.name || 'unknown'} (${left?.object?.name || 'unknown'})\tRight Tile: ${right?.name || 'unknown'} (${right?.object?.name || 'unknown'})\tDown Tile: ${down?.name || 'unknown'} (${down?.object?.name || 'unknown'})\tUp Tile: ${up?.name || 'unknown'} (${up?.object?.name || 'unknown'})
 \`\`\``
 }
@@ -112,7 +118,7 @@ stuff.map = {
     height: 256,
     setTile(x, y, tile, removeObject = true) {
         if (removeObject) {
-            stuff.map.tiles[`${x},${y}`] = { ...stuff.tiles[tile], object: stuff.objects.none, id: tile }
+            stuff.map.tiles[`${x},${y}`] = { ...stuff.tiles[tile], object: stuff.objects[0], id: tile }
         } else {
             var o = stuff.map.tiles[`${x},${y}`].object
             stuff.map.tiles[`${x},${y}`] = { ...stuff.tiles[tile], object: o, id: tile }
@@ -133,26 +139,26 @@ stuff.map = {
         if (!tile) return true
         return tile.collision || tile.object.collision
     },
-    generateObjects(options = [{ id: "moneybag", spawnRate: 0.03 }, { id: "rock", spawnRate: 0.06 }]) {
+    generateObjects(options = [{ id: 2, spawnRate: 0.03 }, { id: 3, spawnRate: 0.06 }]) {
         // Some crappy map generation
         if (!options) return;
-        console.log(`Generating objects`)
+        //console.log(`Generating objects`)
         
         for (var y = 0; y < stuff.map.height; y++) {
             
             for (var x = 0; x < stuff.map.width; x++) {
-                var obj = 'none'
+                var obj = 0
                 for (var o of options) {
                     if (Math.random() < o.spawnRate) obj = o.id
                 }
                 stuff.map.tiles[`${y},${x}`].object = stuff.objects[obj]
             }
         }
-        console.log(`Generated objects`)
+        //console.log(`Generated objects`)
     },
-    generate(options = {defaultTile: 'grass', spawnTiles: [{ id: "dirt", spawnRate: 0.4 }], spawnObjects: [{ id: "moneybag", spawnRate: 0.03 }, { id: "rock", spawnRate: 0.06 }]}) {
+    generate(options = {defaultTile: 0x47, spawnTiles: [{ id: 0x44, spawnRate: 0.4 }], spawnObjects: [{ id: 2, spawnRate: 0.03 }, { id: 3, spawnRate: 0.06 }]}) {
         // Some crappy map generation
-        console.log(`Generating tiles`)
+        //console.log(`Generating tiles`)
         for (var y = 0; y < stuff.map.height; y++) {
             for (var x = 0; x < stuff.map.width; x++) {
                 var til = options.defaultTile;
@@ -162,12 +168,12 @@ stuff.map = {
                 var t = {
                     ...stuff.tiles[til],
                     id: til,
-                    object: stuff.objects.none
+                    object: stuff.objects[0]
                 }
                 stuff.map.tiles[`${y},${x}`] = t
             }
         }
-        console.log(`Finished generating tiles`)
+        //console.log(`Finished generating tiles`)
         //stuff.map.generateObjects(options.spawnObjects)
     }
 }
@@ -177,11 +183,11 @@ stuff.takeDamage = (p, damage) => {
     if (p.health <= 0) stuff.killPlayer(p)
 }
 stuff.killPlayer = (p) => {
-    var o = Object.create(stuff.objects.moneybag)
+    var o = Object.create(stuff.objects[2])
     o.money = p.money;
     o.name = `${p.obj.name}'s Wallet`;
     o.icon = '💵'
-    if (p.tile?.object?.id == 'player') p.tile.object = o;
+    if (p.tile?.object?.id == 1) p.tile.object = o;
 
    delete stuff.players[p.user.id]
 }
@@ -208,15 +214,12 @@ stuff.movePlayer = (id, x, y) => {
     var p = stuff.players[id]
     if (p) {
         if (!stuff.map.checkCollision(p.x + x, p.y + y)) {
-            stuff.map.setObject(p.x, p.y, 'none')
+            stuff.map.setObject(p.x, p.y, 0)
             p.x += x;
             p.y += y;
             stuff.map.setObject(p.x, p.y, p.obj)
             p.tile = stuff.map.getTile(p.x, p.y)
-            if (p.y > p.scrollY + stuff.scrollHeight - 1) p.scrollY += stuff.scrollHeight;
-            if (p.x > p.scrollX + stuff.scrollWidth - 1) p.scrollX += stuff.scrollWidth;
-            if (p.y < p.scrollY) p.scrollY -= stuff.scrollHeight;
-            if (p.x < p.scrollX) p.scrollX -= stuff.scrollWidth;
+            if (p.tile.onPlayer) p.tile.onPlayer(p)
         } else {
             var obj = stuff.map.getTile(p.x + x, p.y + y)?.object;
             if (obj && obj.pushable) {
@@ -225,17 +228,30 @@ stuff.movePlayer = (id, x, y) => {
                 if (!stuff.map.checkCollision(tileX + x, tileY + y)) {
                     var o = Object.create(obj)
                     stuff.map.setObject(tileX + x, tileY + y, o)
-                    stuff.map.setObject(tileX, tileY, 'none')
+                    stuff.map.setObject(tileX, tileY, 0)
                     stuff.movePlayer(id, x, y)
-                    if (o.id == 'player' && o.player) {
+                    if (o.id == 1 && o.player) {
                         var p = stuff.players[o.player]
                         p.x = tileX + x;
                         p.y = tileY + y;
                         p.tile = stuff.map.getTile(p.x, p.y)
+                        if (p.tile.onPlayer) p.tile.onPlayer(p)
                     }
                 }
             }
         }
+    }
+    while (p.y > p.scrollY + stuff.scrollHeight - 1) {
+        p.scrollY += stuff.scrollHeight
+    }
+    while (p.x > p.scrollX + stuff.scrollWidth - 1) {
+        p.scrollX += stuff.scrollWidth
+    }
+    while (p.y < p.scrollY) {
+        p.scrollY -= stuff.scrollHeight
+    }
+    while (p.x < p.scrollX) {
+        p.scrollX -= stuff.scrollWidth
     }
 }
 stuff.map.generate()
@@ -248,6 +264,20 @@ stuff.reload = (p = 'commands/') => {
             delete require.cache[resolve(`./${p}/${f}`)]
             var c = require(`./${p}/${f}`)
             client.commands.set(c.name, c)
+            //console.log(`loaded ${p}/${f} as ${c.name}`)
+        } else if (fs.statSync(resolve(`./${p}/${f}`)).isDirectory()) {
+            stuff.reload(`${p}/${f}/`)
+        }
+    }
+}
+stuff.reloadConsoleCommands = (p = 'console-commands/') => {
+    var files = fs.readdirSync(p)
+    for (const f of files) {
+        if (f.endsWith('.js')) {
+            delete require.cache[resolve(`./${p}/${f}`)]
+            var c = require(`./${p}/${f}`)
+            client.consoleCommands.set(c.name, c)
+            //console.log(`loaded ${p}/${f}`)
         } else if (fs.statSync(resolve(`./${p}/${f}`)).isDirectory()) {
             stuff.reload(`${p}/${f}/`)
         }
@@ -262,26 +292,27 @@ stuff.loadItems = () => {
         stuff.items[c.id] = c;
     }
 }
-client.on('ready', () => {
-    stuff.reload()
-    stuff.loadItems()
-    console.log('ha ha yes')
-})
 client.on('message', async msg => {
     try {
-        if (msg.author.bot) return;
+        //console.log(`messaeg`)
+        if (client.consoleConfig.logMessages == "true") console.log(`${msg.channel.name} ${msg.author.tag}: ${msg.content}`)
+        if (msg.author.bot && msg.author.id != client.user.id) return;
+        //console.log('bot check passed')
         if (!msg.content.startsWith(config.prefix)) return;
-        if (!stuff.db.exists(`/${msg.author.id}/`)) stuff.db.push(`/${msg.author.id}/`, {
-            money: 0,
-            items: [],
-            bank: 0,
-        })
+        //console.log('prefix check passed')
         var args = msg.content.slice(config.prefix.length).split(' ');
         var cmdName = args.shift();
         var cmd = client.commands.get(cmdName)
+        //console.log(cmd)
+        //console.log(client.commands)
+        //console.log(cmdName)
+        //console.log(args)
         if (cmd) {
             if (cmd.onlyFor) if (!cmd.onlyFor.includes(msg.author.id)) throw `You can't use this command`;
+            //console.log('command')
             cmd.run(msg, args)
+        } else {
+            //console.log("command existn't")
         }
     } catch (e) {
         var embed = {
@@ -289,8 +320,23 @@ client.on('message', async msg => {
             color: 0xff0000,
             description: e.message || e || 'empty void of nothingness'
         }
-        console.log(e)
+        //console.log(e)
         msg.channel.send({embed: embed});
     }
+})
+client.on('ready', () => {
+    stuff.reload()
+    stuff.reloadConsoleCommands()
+    console.log('ha ha yes')
+    rl.on('line', i => {
+        try {
+            var args = i.split(' ')
+            var cmd = args.shift().toLowerCase()
+            var c = client.consoleCommands.get(cmd)
+            if (c) {
+                c.run(client, args)
+            } else throw `Command not found: ${cmd}`
+        } catch (er) {console.log(er)}
+    })
 })
 client.login(config.token)

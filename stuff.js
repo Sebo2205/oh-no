@@ -57,6 +57,6 @@ module.exports = {
         })
         if (!res.ok) throw res.statusText
         var data = await res.json()
-        console.log(data.key)
+        //console.log(data.key)
     }
 }
